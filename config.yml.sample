@@ -1,0 +1,11 @@
+path: ./hosts # path to hosts file
+ssh_command: /usr/bin/ssh # you can use just "ssh" as well
+debug: false # show debug info
+defaults:
+  port: 22 # default ssh port
+  user: ec2-user # default ssh user
+  ssh_password: "Don't_Use_Th@t!" # default ssh password
+  become_password: "Don't-Us3__that!!!" # default become password
+  private_key: /path/to/default/private/key # use that!
+
+# vi: ft=yaml
