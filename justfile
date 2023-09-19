@@ -28,4 +28,4 @@ run:
 
 # build app
 build:
-    go build -v -o ansible-ssh ./cmd
+    go build -v -o ansible-ssh .
