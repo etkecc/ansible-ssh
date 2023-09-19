@@ -1,7 +1,8 @@
 path: ./hosts # path to hosts file
 ssh_command: /usr/bin/ssh # you can use just "ssh" as well
+inventory_only: false # true = do not fall back to the ssh command if host not found in inventory
 debug: false # show debug info
-defaults:
+defaults: # default options to be used if value is not provided in the inventory, you can remove any option if you don't need it
   port: 22 # default ssh port
   user: ec2-user # default ssh user
   ssh_password: "Don't_Use_Th@t!" # default ssh password

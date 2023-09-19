@@ -36,36 +36,41 @@ func main() {
 	inv := getInventory(cfg.Path, cfg.Defaults)
 	if inv == nil {
 		debug("inventory not found")
-		executeSSH(cfg.SSHCommand, nil)
+		executeSSH(cfg.SSHCommand, nil, cfg.InventoryOnly)
 		return
 	}
 	host := inv.MatchOne(os.Args[1])
 	if host == nil {
 		debug("host", os.Args[1], "not found in inventory")
-		executeSSH(cfg.SSHCommand, nil)
+		executeSSH(cfg.SSHCommand, nil, cfg.InventoryOnly)
 		return
 	}
 	debug("host", host.Name, "has been found, starting ssh")
-	executeSSH(cfg.SSHCommand, host)
+	executeSSH(cfg.SSHCommand, host, cfg.InventoryOnly)
 }
 
-func executeSSH(sshCmd string, host *aini.Host) {
-	var cmd *exec.Cmd
+func buildCMD(sshCmd string, host *aini.Host, strict bool) *exec.Cmd {
 	if host == nil {
+		if strict {
+			logger.Fatal("host not found within inventory")
+		}
 		debug("command:", sshCmd, os.Args[1:])
-		cmd = exec.Command(sshCmd, os.Args[1:]...)
-	} else {
-		debug("command:", sshCmd, buildSSHArgs(host))
-		cmd = exec.Command(sshCmd, buildSSHArgs(host)...)
-
-		if host.SSHPass != "" {
-			logger.Println("ssh password is:", host.SSHPass)
-		}
-
-		if host.BecomePass != "" {
-			logger.Println("become password is:", host.BecomePass)
-		}
+		return exec.Command(sshCmd, os.Args[1:]...)
 	}
+	debug("command:", sshCmd, buildSSHArgs(host))
+
+	if host.SSHPass != "" {
+		logger.Println("ssh password is:", host.SSHPass)
+	}
+
+	if host.BecomePass != "" {
+		logger.Println("become password is:", host.BecomePass)
+	}
+	return exec.Command(sshCmd, buildSSHArgs(host)...)
+}
+
+func executeSSH(sshCmd string, host *aini.Host, strict bool) {
+	cmd := buildCMD(sshCmd, host, strict)
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 	cmd.Stdin = os.Stdin
