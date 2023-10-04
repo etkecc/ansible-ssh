@@ -146,7 +146,7 @@ func parseParameters(params []string, host *Host) {
 		switch strings.TrimSpace(parts[0]) {
 		case "ansible_host":
 			host.Host = parts[1]
-		case "ansible_port":
+		case "ansible_port", "ansible_ssh_port":
 			host.Port, _ = strconv.Atoi(parts[1]) //nolint:errcheck // should not be a big problem
 		case "ansible_user":
 			host.User = parts[1]
