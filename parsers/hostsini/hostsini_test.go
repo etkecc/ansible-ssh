@@ -1,4 +1,4 @@
-package aini
+package hostsini
 
 import (
 	"strings"

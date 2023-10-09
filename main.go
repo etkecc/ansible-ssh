@@ -5,11 +5,13 @@ import (
 	"os"
 	"os/exec"
 	"strconv"
+	"strings"
 
 	"github.com/adrg/xdg"
 
-	"gitlab.com/etke.cc/int/ansible-ssh/aini"
 	"gitlab.com/etke.cc/int/ansible-ssh/config"
+	"gitlab.com/etke.cc/int/ansible-ssh/parsers/ansiblecfg"
+	"gitlab.com/etke.cc/int/ansible-ssh/parsers/hostsini"
 )
 
 var (
@@ -33,7 +35,7 @@ func main() {
 	}
 	withDebug = cfg.Debug
 
-	inv := getInventory(cfg.Path, cfg.Defaults)
+	inv := findInventory(cfg.Path, cfg.Defaults)
 	if inv == nil {
 		debug("inventory not found")
 		executeSSH(cfg.SSHCommand, nil, cfg.InventoryOnly)
@@ -49,7 +51,47 @@ func main() {
 	executeSSH(cfg.SSHCommand, host, cfg.InventoryOnly)
 }
 
-func buildCMD(sshCmd string, host *aini.Host, strict bool) *exec.Cmd {
+func findInventory(cfgPath string, defaults config.Defaults) *hostsini.Hosts {
+	inv := getInventory(cfgPath, defaults)
+	if inv != nil {
+		debug("inventory", cfgPath, "is not found")
+		return inv
+	}
+
+	acfg := getAnsibleCfg("./ansible.cfg")
+	if acfg == nil {
+		debug("ansible.cfg is not found")
+		return nil
+	}
+	invcfg := acfg.Config["defaults"]["inventory"]
+	if invcfg == "" {
+		debug("no inventories found in ansible.cfg")
+		return nil
+	}
+	invpaths := strings.Split(invcfg, ",")
+	if len(invpaths) == 0 {
+		debug("no inventories found in ansible.cfg")
+		return nil
+	}
+
+	inv = &hostsini.Hosts{}
+	for _, path := range invpaths {
+		parsedInv := getInventory(path, defaults)
+		if parsedInv == nil {
+			debug("inventory", path, "found in ansible.cfg isn't eligible")
+			continue
+		}
+		inv.Merge(parsedInv)
+	}
+
+	if len(inv.Hosts) == 0 {
+		return nil
+	}
+
+	return inv
+}
+
+func buildCMD(sshCmd string, host *hostsini.Host, strict bool) *exec.Cmd {
 	if host == nil {
 		if strict {
 			logger.Fatal("host not found within inventory")
@@ -69,7 +111,7 @@ func buildCMD(sshCmd string, host *aini.Host, strict bool) *exec.Cmd {
 	return exec.Command(sshCmd, buildSSHArgs(host)...)
 }
 
-func executeSSH(sshCmd string, host *aini.Host, strict bool) {
+func executeSSH(sshCmd string, host *hostsini.Host, strict bool) {
 	cmd := buildCMD(sshCmd, host, strict)
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
@@ -85,7 +127,7 @@ func executeSSH(sshCmd string, host *aini.Host, strict bool) {
 	}
 }
 
-func buildSSHArgs(host *aini.Host) []string {
+func buildSSHArgs(host *hostsini.Host) []string {
 	if host == nil {
 		return nil
 	}
@@ -106,20 +148,29 @@ func buildSSHArgs(host *aini.Host) []string {
 	return args
 }
 
-func getInventory(file string, defaults config.Defaults) *aini.Hosts {
-	defaultHost := aini.Host{
+func getInventory(file string, defaults config.Defaults) *hostsini.Hosts {
+	defaultHost := hostsini.Host{
 		Port:       defaults.Port,
 		User:       defaults.User,
 		SSHPass:    defaults.SSHPass,
 		BecomePass: defaults.BecomePass,
 		PrivateKey: defaults.PrivateKey,
 	}
-	inventory, err := aini.NewFile(file, defaultHost)
+	inventory, err := hostsini.NewFile(file, defaultHost)
 	if err != nil {
 		debug("error parsing inventory", err)
 		return nil
 	}
 	return inventory
+}
+
+func getAnsibleCfg(file string) *ansiblecfg.AnsibleCfg {
+	cfg, err := ansiblecfg.NewFile(file)
+	if err != nil {
+		debug("error parsing ansible.cfg", err)
+		return nil
+	}
+	return cfg
 }
 
 func debug(args ...any) {

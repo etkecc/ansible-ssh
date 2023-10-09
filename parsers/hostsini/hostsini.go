@@ -1,4 +1,4 @@
-package aini
+package hostsini
 
 import (
 	"bufio"
@@ -107,6 +107,24 @@ func (h *Hosts) Match(m string) []*Host {
 
 func (h *Hosts) MatchOne(m string) *Host {
 	return h.Hosts[m]
+}
+
+// Merge does append and replace
+func (h *Hosts) Merge(h2 *Hosts) {
+	if h.Groups == nil {
+		h.Groups = make(map[string][]*Host)
+	}
+	if h.Hosts == nil {
+		h.Hosts = make(map[string]*Host)
+	}
+
+	for group, hosts := range h2.Groups {
+		h.Groups[group] = hosts
+	}
+
+	for name, host := range h2.Hosts {
+		h.Hosts[name] = host
+	}
 }
 
 func getHost(parts []string, defaults Host) *Host {
