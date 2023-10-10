@@ -4,8 +4,8 @@ go 1.21
 
 require (
 	github.com/adrg/xdg v0.4.0
-	github.com/flynn/go-shlex v0.0.0-20150515145356-3f9db97f8568
+	golang.org/x/exp v0.0.0-20231006140011-7918f672742d
 	gopkg.in/yaml.v3 v3.0.1
 )
 
-require golang.org/x/sys v0.0.0-20211025201205-69cdffdb9359 // indirect
+require golang.org/x/sys v0.13.0 // indirect

@@ -10,8 +10,7 @@ import (
 	"github.com/adrg/xdg"
 
 	"gitlab.com/etke.cc/int/ansible-ssh/config"
-	"gitlab.com/etke.cc/int/ansible-ssh/parsers/ansiblecfg"
-	"gitlab.com/etke.cc/int/ansible-ssh/parsers/hostsini"
+	"gitlab.com/etke.cc/int/ansible-ssh/parser"
 )
 
 var (
@@ -36,13 +35,14 @@ func main() {
 	withDebug = cfg.Debug
 
 	acfg, defaults := parseAnsibleConfig(cfg)
-	inv := findInventory(cfg.Path, acfg, defaults)
+	paths := allInventoryPaths(cfg.Path, acfg)
+	inv := parseInventory(paths, defaults)
 	if inv == nil {
 		debug("inventory not found")
 		executeSSH(cfg.SSHCommand, nil, cfg.InventoryOnly)
 		return
 	}
-	host := inv.MatchOne(os.Args[1])
+	host := inv.Match(os.Args[1])
 	if host == nil {
 		debug("host", os.Args[1], "not found in inventory")
 		executeSSH(cfg.SSHCommand, nil, cfg.InventoryOnly)
@@ -52,9 +52,9 @@ func main() {
 	executeSSH(cfg.SSHCommand, host, cfg.InventoryOnly)
 }
 
-func parseAnsibleConfig(cfg *config.Config) (*ansiblecfg.AnsibleCfg, *config.Defaults) {
+func parseAnsibleConfig(cfg *config.Config) (*parser.AnsibleCfg, *config.Defaults) {
 	defaults := &cfg.Defaults
-	acfg, err := ansiblecfg.NewFile("./ansible.cfg")
+	acfg, err := parser.NewAnsibleCfgFile("./ansible.cfg")
 	if err != nil {
 		debug("ansible.cfg is not available", err)
 		return nil, defaults
@@ -81,30 +81,30 @@ func parseAnsibleConfig(cfg *config.Config) (*ansiblecfg.AnsibleCfg, *config.Def
 	return acfg, defaults
 }
 
-func findInventory(cfgPath string, acfg *ansiblecfg.AnsibleCfg, defaults *config.Defaults) *hostsini.Hosts {
-	inv := getInventory(cfgPath, defaults)
-	if inv != nil {
-		debug("inventory", cfgPath, "is not found")
-		return inv
-	}
-
+func allInventoryPaths(cfgPath string, acfg *parser.AnsibleCfg) []string {
+	all := []string{cfgPath}
 	if acfg == nil {
-		return nil
+		return all
 	}
 
 	invcfg := acfg.Config["defaults"]["inventory"]
 	if invcfg == "" {
 		debug("no inventories found in ansible.cfg")
-		return nil
+		return all
 	}
 	invpaths := strings.Split(invcfg, ",")
 	if len(invpaths) == 0 {
 		debug("no inventories found in ansible.cfg")
-		return nil
+		return all
 	}
 
-	inv = &hostsini.Hosts{}
-	for _, path := range invpaths {
+	return parser.Uniq(append(all, invpaths...))
+}
+
+func parseInventory(paths []string, defaults *config.Defaults) *parser.HostsIni {
+	debug("found paths", paths)
+	inv := &parser.HostsIni{}
+	for _, path := range paths {
 		parsedInv := getInventory(path, defaults)
 		if parsedInv == nil {
 			debug("inventory", path, "found in ansible.cfg isn't eligible")
@@ -120,7 +120,7 @@ func findInventory(cfgPath string, acfg *ansiblecfg.AnsibleCfg, defaults *config
 	return inv
 }
 
-func buildCMD(sshCmd string, host *hostsini.Host, strict bool) *exec.Cmd {
+func buildCMD(sshCmd string, host *parser.Host, strict bool) *exec.Cmd {
 	if host == nil {
 		if strict {
 			logger.Fatal("host not found within inventory")
@@ -140,7 +140,7 @@ func buildCMD(sshCmd string, host *hostsini.Host, strict bool) *exec.Cmd {
 	return exec.Command(sshCmd, buildSSHArgs(host)...)
 }
 
-func executeSSH(sshCmd string, host *hostsini.Host, strict bool) {
+func executeSSH(sshCmd string, host *parser.Host, strict bool) {
 	cmd := buildCMD(sshCmd, host, strict)
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
@@ -156,7 +156,7 @@ func executeSSH(sshCmd string, host *hostsini.Host, strict bool) {
 	}
 }
 
-func buildSSHArgs(host *hostsini.Host) []string {
+func buildSSHArgs(host *parser.Host) []string {
 	if host == nil {
 		return nil
 	}
@@ -177,15 +177,15 @@ func buildSSHArgs(host *hostsini.Host) []string {
 	return args
 }
 
-func getInventory(file string, defaults *config.Defaults) *hostsini.Hosts {
-	defaultHost := hostsini.Host{
+func getInventory(file string, defaults *config.Defaults) *parser.HostsIni {
+	defaultHost := &parser.Host{
 		Port:       defaults.Port,
 		User:       defaults.User,
 		SSHPass:    defaults.SSHPass,
 		BecomePass: defaults.BecomePass,
 		PrivateKey: defaults.PrivateKey,
 	}
-	inventory, err := hostsini.NewFile(file, defaultHost)
+	inventory, err := parser.NewHostsFile(file, defaultHost)
 	if err != nil {
 		debug("error parsing inventory", err)
 		return nil
