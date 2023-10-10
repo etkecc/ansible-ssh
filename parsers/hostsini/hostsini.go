@@ -16,9 +16,11 @@ import (
 const defaultGroup = "ungrouped"
 
 type Hosts struct {
-	input  *bufio.Reader
-	Groups map[string][]*Host
-	Hosts  map[string]*Host
+	input     *bufio.Reader
+	Groups    map[string][]*Host
+	GroupVars map[string]map[string]string
+	GroupTree map[string][]string
+	Hosts     map[string]*Host
 }
 
 type Host struct {
@@ -65,13 +67,21 @@ func (h *Hosts) shouldIgnore(line string) bool {
 	return strings.HasPrefix(line, ";") || strings.HasPrefix(line, "#") || line == ""
 }
 
+func (h *Hosts) init() {
+	h.Groups = make(map[string][]*Host)
+	h.Groups[defaultGroup] = make([]*Host, 0)
+	h.GroupVars = make(map[string]map[string]string)
+	h.GroupVars[defaultGroup] = make(map[string]string)
+	h.Hosts = make(map[string]*Host)
+}
+
+//nolint:gocognit // TODO: decouple that
 func (h *Hosts) parse(defaults Host) {
 	activeGroupName := defaultGroup
+	h.init()
 	scanner := bufio.NewScanner(h.input)
-	h.Groups = make(map[string][]*Host)
-	h.Groups[activeGroupName] = make([]*Host, 0)
-	h.Hosts = make(map[string]*Host)
 
+	var isGroupVars bool
 	for scanner.Scan() {
 		line := strings.Trim(scanner.Text(), " ")
 		if h.shouldIgnore(line) {
@@ -79,15 +89,34 @@ func (h *Hosts) parse(defaults Host) {
 		}
 		group := h.parseGroup(line)
 		if group != "" {
+			if strings.Contains(group, ":vars") {
+				isGroupVars = true
+				groupParts := strings.Split(group, ":")
+				activeGroupName = groupParts[0]
+				continue
+			}
+			isGroupVars = false
 			activeGroupName = group
 			continue
+		}
+
+		if isGroupVars {
+			varsParts := strings.Split(strings.TrimSpace(line), "=")
+			if len(varsParts) != 2 {
+				continue
+			}
+			if _, ok := h.GroupVars[activeGroupName]; !ok {
+				h.GroupVars[activeGroupName] = make(map[string]string)
+			}
+
+			h.GroupVars[activeGroupName][varsParts[0]] = varsParts[1]
 		}
 
 		parts, err := shlex.Split(line)
 		if err != nil {
 			fmt.Println("couldn't tokenize: ", line)
 		}
-		host := getHost(parts, defaults)
+		host := getHost(parts, mergeDefaults(h.GroupVars[activeGroupName], defaults))
 		h.Groups[activeGroupName] = append(h.Groups[activeGroupName], host)
 		h.Hosts[host.Name] = host
 	}
@@ -125,6 +154,16 @@ func (h *Hosts) Merge(h2 *Hosts) {
 	for name, host := range h2.Hosts {
 		h.Hosts[name] = host
 	}
+}
+
+func mergeDefaults(group map[string]string, defaults Host) Host {
+	params := []string{}
+	for k, v := range group {
+		params = append(params, k+"="+v)
+	}
+
+	parseParameters(params, &defaults)
+	return defaults
 }
 
 func getHost(parts []string, defaults Host) *Host {
