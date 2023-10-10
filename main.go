@@ -35,7 +35,8 @@ func main() {
 	}
 	withDebug = cfg.Debug
 
-	inv := findInventory(cfg.Path, cfg.Defaults)
+	acfg, defaults := parseAnsibleConfig(cfg)
+	inv := findInventory(cfg.Path, acfg, defaults)
 	if inv == nil {
 		debug("inventory not found")
 		executeSSH(cfg.SSHCommand, nil, cfg.InventoryOnly)
@@ -51,18 +52,46 @@ func main() {
 	executeSSH(cfg.SSHCommand, host, cfg.InventoryOnly)
 }
 
-func findInventory(cfgPath string, defaults config.Defaults) *hostsini.Hosts {
+func parseAnsibleConfig(cfg *config.Config) (*ansiblecfg.AnsibleCfg, *config.Defaults) {
+	defaults := &cfg.Defaults
+	acfg, err := ansiblecfg.NewFile("./ansible.cfg")
+	if err != nil {
+		debug("ansible.cfg is not available", err)
+		return nil, defaults
+	}
+
+	if _, ok := acfg.Config["defaults"]; !ok {
+		debug("ansible.cfg doesn't contain [defaults] section")
+		return acfg, defaults
+	}
+
+	if user := acfg.Config["defaults"]["remote_user"]; user != "" {
+		defaults.User = user
+	}
+	if privkey := acfg.Config["defaults"]["private_key_file"]; privkey != "" {
+		defaults.PrivateKey = privkey
+	}
+	if port := acfg.Config["defaults"]["remote_port"]; port != "" {
+		portI, err := strconv.Atoi(port)
+		if err == nil {
+			defaults.Port = portI
+		}
+	}
+
+	return acfg, defaults
+}
+
+func findInventory(cfgPath string, acfg *ansiblecfg.AnsibleCfg, defaults *config.Defaults) *hostsini.Hosts {
 	inv := getInventory(cfgPath, defaults)
 	if inv != nil {
 		debug("inventory", cfgPath, "is not found")
 		return inv
 	}
 
-	acfg := getAnsibleCfg("./ansible.cfg")
 	if acfg == nil {
-		debug("ansible.cfg is not found")
 		return nil
 	}
+
 	invcfg := acfg.Config["defaults"]["inventory"]
 	if invcfg == "" {
 		debug("no inventories found in ansible.cfg")
@@ -148,7 +177,7 @@ func buildSSHArgs(host *hostsini.Host) []string {
 	return args
 }
 
-func getInventory(file string, defaults config.Defaults) *hostsini.Hosts {
+func getInventory(file string, defaults *config.Defaults) *hostsini.Hosts {
 	defaultHost := hostsini.Host{
 		Port:       defaults.Port,
 		User:       defaults.User,
@@ -162,15 +191,6 @@ func getInventory(file string, defaults config.Defaults) *hostsini.Hosts {
 		return nil
 	}
 	return inventory
-}
-
-func getAnsibleCfg(file string) *ansiblecfg.AnsibleCfg {
-	cfg, err := ansiblecfg.NewFile(file)
-	if err != nil {
-		debug("error parsing ansible.cfg", err)
-		return nil
-	}
-	return cfg
 }
 
 func debug(args ...any) {
