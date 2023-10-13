@@ -1,4 +1,4 @@
-module gitlab.com/etke.cc/int/ansible-ssh
+module gitlab.com/etke.cc/tools/ansible-ssh
 
 go 1.21
 

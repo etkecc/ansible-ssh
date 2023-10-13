@@ -3,7 +3,7 @@ package parser
 import (
 	"bufio"
 	"bytes"
-	"io/ioutil"
+	"os"
 	"strings"
 )
 
@@ -14,7 +14,7 @@ type AnsibleCfg struct {
 }
 
 func NewAnsibleCfgFile(f string) (*AnsibleCfg, error) {
-	bs, err := ioutil.ReadFile(f)
+	bs, err := os.ReadFile(f)
 	if err != nil {
 		return &AnsibleCfg{Config: make(map[string]map[string]string)}, err
 	}
@@ -36,7 +36,7 @@ func (a *AnsibleCfg) parse(input []byte) {
 
 	for scanner.Scan() {
 		line := strings.TrimSpace(scanner.Text())
-		switch parseType(line) {
+		switch parseType(line) { //nolint:exhaustive // that's intended
 		case TypeGroup:
 			activeSectionName = parseGroup(line)
 		case TypeVar:

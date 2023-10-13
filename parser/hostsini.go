@@ -3,7 +3,7 @@ package parser
 import (
 	"bufio"
 	"bytes"
-	"io/ioutil"
+	"os"
 	"strings"
 
 	"golang.org/x/exp/slices"
@@ -36,7 +36,7 @@ type Host struct {
 }
 
 func NewHostsFile(f string, defaults *Host) (*HostsIni, error) {
-	bs, err := ioutil.ReadFile(f)
+	bs, err := os.ReadFile(f)
 	if err != nil {
 		return &HostsIni{}, err
 	}
@@ -116,7 +116,7 @@ func (h *HostsIni) parse(input []byte, defaults *Host) {
 	scanner := bufio.NewScanner(buff)
 	for scanner.Scan() {
 		line := scanner.Text()
-		switch parseType(line) {
+		switch parseType(line) { //nolint:exhaustive // that's intended
 		case TypeGroup:
 			activeGroupName = parseGroup(line)
 			h.initGroup(activeGroupName)

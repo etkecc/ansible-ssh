@@ -35,7 +35,7 @@ alias ssh="ansible-ssh"
 
 ### Binaries and distro-specific packages
 
-[Releases page](https://gitlab.com/etke.cc/int/ansible-ssh/-/releases)
+[Releases page](https://gitlab.com/etke.cc/tools/ansible-ssh/-/releases)
 
 ### Build yourself
 

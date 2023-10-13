@@ -9,8 +9,8 @@ import (
 
 	"github.com/adrg/xdg"
 
-	"gitlab.com/etke.cc/int/ansible-ssh/config"
-	"gitlab.com/etke.cc/int/ansible-ssh/parser"
+	"gitlab.com/etke.cc/tools/ansible-ssh/config"
+	"gitlab.com/etke.cc/tools/ansible-ssh/parser"
 )
 
 var (
@@ -126,7 +126,7 @@ func buildCMD(sshCmd string, host *parser.Host, strict bool) *exec.Cmd {
 			logger.Fatal("host not found within inventory")
 		}
 		debug("command:", sshCmd, os.Args[1:])
-		return exec.Command(sshCmd, os.Args[1:]...)
+		return exec.Command(sshCmd, os.Args[1:]...) //nolint:gosec // that's intended
 	}
 	debug("command:", sshCmd, buildSSHArgs(host))
 
@@ -137,7 +137,7 @@ func buildCMD(sshCmd string, host *parser.Host, strict bool) *exec.Cmd {
 	if host.BecomePass != "" {
 		logger.Println("become password is:", host.BecomePass)
 	}
-	return exec.Command(sshCmd, buildSSHArgs(host)...)
+	return exec.Command(sshCmd, buildSSHArgs(host)...) //nolint:gosec // that's intended
 }
 
 func executeSSH(sshCmd string, host *parser.Host, strict bool) {

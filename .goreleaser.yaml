@@ -17,7 +17,7 @@ nfpms:
     package_name: ansible-ssh
     maintainer: etke.cc
     description: ansible-ssh wrapper allows connecting to the hosts defined in ansible inventory using standard ssh
-    homepage: https://gitlab.com/etke.cc/int/ansible-ssh
+    homepage: https://gitlab.com/etke.cc/tools/ansible-ssh
     license: AGPL-3.0
     formats:
       - deb

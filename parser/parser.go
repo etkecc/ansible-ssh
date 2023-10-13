@@ -13,7 +13,7 @@ type LineType int
 const (
 	TypeIgnore        LineType = iota // Line to ignore
 	TypeVar           LineType = iota // Line contains var (key=value pair)
-	TypeHost          LineType = iota // Line contains host (name key=value key=value ...)
+	TypeHost          LineType = iota // Line contains host (name key1=value1 key2=value2 ...)
 	TypeGroup         LineType = iota // Line contains group ([group])
 	TypeGroupVars     LineType = iota // Line contains group vars ([group:vars])
 	TypeGroupChild    LineType = iota // Line contains group child (group_child)
@@ -60,7 +60,7 @@ func parseGroup(line string) string {
 	return groupReplacer.Replace(line)
 }
 
-func parseVar(line string) (string, string) {
+func parseVar(line string) (key, value string) {
 	parts := strings.Split(line, "=")
 	if len(parts) != 2 {
 		return "", ""
