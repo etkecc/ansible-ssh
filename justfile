@@ -16,9 +16,17 @@ lint:
 lintfix:
     golangci-lint run --fix ./...
 
+# generate mocks
+mocks:
+    @mockery --all --inpackage --testonly --exclude vendor
+
+# run cpu or mem profiler UI
+profile type:
+    go tool pprof -http 127.0.0.1:8000 .pprof/{{ type }}.prof
+
 # run unit tests
 test:
-    @go test -coverprofile=cover.out ./...
+    @go test -cover -coverprofile=cover.out -coverpkg=./... -covermode=set ./...
     @go tool cover -func=cover.out
     -@rm -f cover.out
 
@@ -28,4 +36,4 @@ run:
 
 # build app
 build:
-    go build -v -o ansible-ssh .
+    go build -v .
