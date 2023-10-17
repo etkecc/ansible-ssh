@@ -1,4 +1,4 @@
-package parser
+package ansible
 
 import (
 	"bufio"
@@ -14,6 +14,14 @@ type AnsibleCfg struct {
 }
 
 func NewAnsibleCfgFile(f string) (*AnsibleCfg, error) {
+	if f == "" {
+		return nil, nil
+	}
+
+	if !FileExists(f) {
+		return nil, os.ErrNotExist
+	}
+
 	bs, err := os.ReadFile(f)
 	if err != nil {
 		return &AnsibleCfg{Config: make(map[string]map[string]string)}, err
@@ -36,7 +44,7 @@ func (a *AnsibleCfg) parse(input []byte) {
 
 	for scanner.Scan() {
 		line := strings.TrimSpace(scanner.Text())
-		switch parseType(line) { //nolint:exhaustive // that's intended
+		switch parseType(line) { //nolint:exhaustive // intended
 		case TypeGroup:
 			activeSectionName = parseGroup(line)
 		case TypeVar:

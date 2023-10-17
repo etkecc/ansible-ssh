@@ -1,7 +1,6 @@
-package parser
+package ansible
 
 import (
-	"log"
 	"strconv"
 	"strings"
 
@@ -22,12 +21,19 @@ const (
 
 var groupReplacer = strings.NewReplacer("[", "", "]", "", ":children", "", ":vars", "")
 
-func parseType(line string) LineType {
-	line = strings.TrimSpace(line)
+func parseTypeIgnore(line string) bool {
 	if line == "" {
-		return TypeIgnore
+		return true
 	}
 	if strings.HasPrefix(line, ";") || strings.HasPrefix(line, "#") || line == "" {
+		return true
+	}
+	return false
+}
+
+func parseType(line string) LineType {
+	line = strings.TrimSpace(line)
+	if parseTypeIgnore(line) {
 		return TypeIgnore
 	}
 
@@ -42,15 +48,15 @@ func parseType(line string) LineType {
 	}
 
 	words := strings.Fields(line)
-	if len(words) <= 3 { // "key=value", "key =value", "key = value"
-		if slices.Contains(words, "=") {
-			log.Println(words)
+	if len(words) == 1 {
+		if strings.Contains(words[0], "=") {
 			return TypeVar
 		}
+		return TypeGroupChild
 	}
 
-	if len(words) == 1 {
-		return TypeGroupChild
+	if len(words) == 3 && strings.TrimSpace(words[1]) == "=" { // "key=value", "key =value", "key = value"
+		return TypeVar
 	}
 
 	return TypeHost
@@ -65,13 +71,13 @@ func parseVar(line string) (key, value string) {
 	if len(parts) != 2 {
 		return "", ""
 	}
-	return strings.TrimSpace(parts[0]), strings.TrimSpace(parts[1])
+	return strings.TrimSpace(parts[0]), Unquote(strings.TrimSpace(parts[1]))
 }
 
-func parseHost(line string) *Host {
+func parseHost(line string, only []string) *Host {
 	parts := strings.Fields(line)
 	hostname := parts[0]
-	var port int
+	port := 22
 	if (strings.Contains(hostname, "[") &&
 		strings.Contains(hostname, "]") &&
 		strings.Contains(hostname, ":") &&
@@ -84,12 +90,19 @@ func parseHost(line string) *Host {
 		}
 		hostname = splithost[0]
 	}
+	if len(only) > 0 && !slices.Contains(only, hostname) {
+		return nil
+	}
+
 	params := parts[1:]
 
 	host := parseParams(params)
 	host.Name = hostname
 	if host.Port == 0 {
 		host.Port = port
+	}
+	if host.User == "" {
+		host.User = "root"
 	}
 	return host
 }
@@ -103,19 +116,82 @@ func parseParams(params []string) *Host {
 		}
 		switch strings.TrimSpace(parts[0]) {
 		case "ansible_host":
-			vars.Host = parts[1]
+			vars.Host = Unquote(parts[1])
 		case "ansible_port", "ansible_ssh_port":
-			vars.Port, _ = strconv.Atoi(parts[1]) //nolint:errcheck // should not be a big problem
+			vars.Port, _ = strconv.Atoi(Unquote(parts[1])) //nolint:errcheck // should not be a big problem
 		case "ansible_user":
-			vars.User = parts[1]
+			vars.User = Unquote(parts[1])
 		case "ansible_ssh_pass":
-			vars.SSHPass = parts[1]
+			vars.SSHPass = Unquote(parts[1])
 		case "ansible_ssh_private_key_file":
-			vars.PrivateKey = parts[1]
+			vars.PrivateKey = Unquote(parts[1])
 		case "ansible_become_password":
-			vars.BecomePass = parts[1]
+			vars.BecomePass = Unquote(parts[1])
 		}
 	}
 
 	return vars
+}
+
+func parseLimit(input string) []string {
+	input = strings.TrimSpace(input)
+	if input == "" {
+		return nil
+	}
+	if !strings.Contains(input, ",") {
+		return []string{input}
+	}
+	parts := strings.Split(input, ",")
+	limit := []string{}
+	for _, part := range parts {
+		part = strings.TrimSpace(part)
+		if part == "" {
+			continue
+		}
+		limit = append(limit, part)
+	}
+
+	return limit
+}
+
+func parseDefaultsFromAnsibleCfg(cfg *AnsibleCfg) *Host {
+	base := &Host{}
+	if cfg == nil {
+		return base
+	}
+	if _, ok := cfg.Config["defaults"]; !ok {
+		return base
+	}
+
+	if user := cfg.Config["defaults"]["remote_user"]; user != "" {
+		base.User = user
+	}
+	if privkey := cfg.Config["defaults"]["private_key_file"]; privkey != "" {
+		base.PrivateKey = privkey
+	}
+	if port := cfg.Config["defaults"]["remote_port"]; port != "" {
+		portI, err := strconv.Atoi(port)
+		if err == nil {
+			base.Port = portI
+		}
+	}
+	return base
+}
+
+func parseAllInventoryPaths(static string, cfg *AnsibleCfg) []string {
+	all := []string{static}
+	if cfg == nil {
+		return all
+	}
+
+	invcfg := cfg.Config["defaults"]["inventory"]
+	if invcfg == "" {
+		return all
+	}
+	invpaths := strings.Split(invcfg, ",")
+	if len(invpaths) == 0 {
+		return all
+	}
+
+	return Uniq(append(all, invpaths...))
 }

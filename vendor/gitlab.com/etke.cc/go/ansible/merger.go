@@ -1,6 +1,18 @@
-package parser
+package ansible
 
-func mergeHost(base, add *Host) *Host {
+func MergeHost(base, add *Host) *Host {
+	if base == nil && add == nil {
+		return nil
+	}
+
+	if base == nil {
+		return add
+	}
+
+	if add == nil {
+		return base
+	}
+
 	if base.Name == "" {
 		base.Name = add.Name
 	}
@@ -16,11 +28,12 @@ func mergeHost(base, add *Host) *Host {
 	if base.SSHPass == "" {
 		base.SSHPass = add.SSHPass
 	}
-	if base.BecomePass != "" {
+	if base.BecomePass == "" {
 		base.BecomePass = add.BecomePass
 	}
 	if base.PrivateKey == "" {
 		base.PrivateKey = add.PrivateKey
 	}
+	base.Groups = Uniq(append(base.Groups, add.Groups...))
 	return base
 }

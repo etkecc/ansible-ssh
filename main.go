@@ -5,12 +5,11 @@ import (
 	"os"
 	"os/exec"
 	"strconv"
-	"strings"
 
 	"github.com/adrg/xdg"
+	"gitlab.com/etke.cc/go/ansible"
 
 	"gitlab.com/etke.cc/tools/ansible-ssh/config"
-	"gitlab.com/etke.cc/tools/ansible-ssh/parser"
 )
 
 var (
@@ -34,93 +33,30 @@ func main() {
 	}
 	withDebug = cfg.Debug
 
-	acfg, defaults := parseAnsibleConfig(cfg)
-	paths := allInventoryPaths(cfg.Path, acfg)
-	inv := parseInventory(paths, defaults)
+	inv := ansible.ParseInventory("ansible.cfg", cfg.Path, os.Args[1])
 	if inv == nil {
 		debug("inventory not found")
 		executeSSH(cfg.SSHCommand, nil, cfg.InventoryOnly)
 		return
 	}
-	host := inv.Match(os.Args[1])
+	host := inv.Hosts[os.Args[1]]
 	if host == nil {
 		debug("host", os.Args[1], "not found in inventory")
 		executeSSH(cfg.SSHCommand, nil, cfg.InventoryOnly)
 		return
 	}
+	host = ansible.MergeHost(host, &ansible.Host{
+		User:       cfg.Defaults.User,
+		Port:       cfg.Defaults.Port,
+		SSHPass:    cfg.Defaults.SSHPass,
+		BecomePass: cfg.Defaults.BecomePass,
+		PrivateKey: cfg.Defaults.PrivateKey,
+	})
 	debug("host", host.Name, "has been found, starting ssh")
 	executeSSH(cfg.SSHCommand, host, cfg.InventoryOnly)
 }
 
-func parseAnsibleConfig(cfg *config.Config) (*parser.AnsibleCfg, *config.Defaults) {
-	defaults := &cfg.Defaults
-	acfg, err := parser.NewAnsibleCfgFile("./ansible.cfg")
-	if err != nil {
-		debug("ansible.cfg is not available", err)
-		return nil, defaults
-	}
-
-	if _, ok := acfg.Config["defaults"]; !ok {
-		debug("ansible.cfg doesn't contain [defaults] section")
-		return acfg, defaults
-	}
-
-	if user := acfg.Config["defaults"]["remote_user"]; user != "" {
-		defaults.User = user
-	}
-	if privkey := acfg.Config["defaults"]["private_key_file"]; privkey != "" {
-		defaults.PrivateKey = privkey
-	}
-	if port := acfg.Config["defaults"]["remote_port"]; port != "" {
-		portI, err := strconv.Atoi(port)
-		if err == nil {
-			defaults.Port = portI
-		}
-	}
-
-	return acfg, defaults
-}
-
-func allInventoryPaths(cfgPath string, acfg *parser.AnsibleCfg) []string {
-	all := []string{cfgPath}
-	if acfg == nil {
-		return all
-	}
-
-	invcfg := acfg.Config["defaults"]["inventory"]
-	if invcfg == "" {
-		debug("no inventories found in ansible.cfg")
-		return all
-	}
-	invpaths := strings.Split(invcfg, ",")
-	if len(invpaths) == 0 {
-		debug("no inventories found in ansible.cfg")
-		return all
-	}
-
-	return parser.Uniq(append(all, invpaths...))
-}
-
-func parseInventory(paths []string, defaults *config.Defaults) *parser.HostsIni {
-	debug("found paths", paths)
-	inv := &parser.HostsIni{}
-	for _, path := range paths {
-		parsedInv := getInventory(path, defaults)
-		if parsedInv == nil {
-			debug("inventory", path, "found in ansible.cfg isn't eligible")
-			continue
-		}
-		inv.Merge(parsedInv)
-	}
-
-	if len(inv.Hosts) == 0 {
-		return nil
-	}
-
-	return inv
-}
-
-func buildCMD(sshCmd string, host *parser.Host, strict bool) *exec.Cmd {
+func buildCMD(sshCmd string, host *ansible.Host, strict bool) *exec.Cmd {
 	if host == nil {
 		if strict {
 			logger.Fatal("host not found within inventory")
@@ -140,7 +76,7 @@ func buildCMD(sshCmd string, host *parser.Host, strict bool) *exec.Cmd {
 	return exec.Command(sshCmd, buildSSHArgs(host)...) //nolint:gosec // that's intended
 }
 
-func executeSSH(sshCmd string, host *parser.Host, strict bool) {
+func executeSSH(sshCmd string, host *ansible.Host, strict bool) {
 	cmd := buildCMD(sshCmd, host, strict)
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
@@ -156,7 +92,7 @@ func executeSSH(sshCmd string, host *parser.Host, strict bool) {
 	}
 }
 
-func buildSSHArgs(host *parser.Host) []string {
+func buildSSHArgs(host *ansible.Host) []string {
 	if host == nil {
 		return nil
 	}
@@ -175,22 +111,6 @@ func buildSSHArgs(host *parser.Host) []string {
 	}
 
 	return args
-}
-
-func getInventory(file string, defaults *config.Defaults) *parser.HostsIni {
-	defaultHost := &parser.Host{
-		Port:       defaults.Port,
-		User:       defaults.User,
-		SSHPass:    defaults.SSHPass,
-		BecomePass: defaults.BecomePass,
-		PrivateKey: defaults.PrivateKey,
-	}
-	inventory, err := parser.NewHostsFile(file, defaultHost)
-	if err != nil {
-		debug("error parsing inventory", err)
-		return nil
-	}
-	return inventory
 }
 
 func debug(args ...any) {

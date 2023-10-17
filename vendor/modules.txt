@@ -2,6 +2,9 @@
 ## explicit; go 1.14
 github.com/adrg/xdg
 github.com/adrg/xdg/internal/pathutil
+# gitlab.com/etke.cc/go/ansible v0.0.0-20231017202842-01b6892e6e61
+## explicit; go 1.21
+gitlab.com/etke.cc/go/ansible
 # golang.org/x/exp v0.0.0-20231006140011-7918f672742d
 ## explicit; go 1.20
 golang.org/x/exp/constraints
