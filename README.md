@@ -13,7 +13,7 @@
 
 ## What?
 
-ansible-ssh is a wrapper around the standard `ssh` client (usually, openssh client) that will try to read ansible inventory within the current directory first and connect to the matched server. If none matched - it will fallback to the standard ssh
+ansible-ssh is a wrapper around the standard `ssh` client (usually, openssh client) that will try to read ansible.cfg and ansible hosts within the current directory first and connect to the matched server. If none matched - it will fallback to the standard ssh
 
 ## Why?
 
