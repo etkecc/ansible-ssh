@@ -10,7 +10,10 @@ import (
 	"golang.org/x/exp/slices"
 )
 
-const defaultGroup = "ungrouped"
+const (
+	defaultGroup = "ungrouped"
+	todo         = "todo"
+)
 
 // Inventory contains all hosts file content
 type Inventory struct {
@@ -54,6 +57,33 @@ func (h *Host) FindFile(name string) (string, bool) {
 		}
 	}
 	return "", false
+}
+
+// HasTODOs returns true if host has any todo values
+func (h *Host) HasTODOs() bool {
+	if h == nil {
+		return true
+	}
+	if strings.ToLower(h.Host) == todo {
+		return true
+	}
+	if strings.ToLower(h.User) == todo {
+		return true
+	}
+	if strings.ToLower(h.SSHPass) == todo {
+		return true
+	}
+	if strings.ToLower(h.BecomePass) == todo {
+		return true
+	}
+	if strings.ToLower(h.PrivateKey) == todo {
+		return true
+	}
+	if strings.ToLower(h.Name) == todo {
+		return true
+	}
+
+	return h.Vars.HasTODOs()
 }
 
 func NewHostsFile(f string, defaults *Host, only ...string) (*Inventory, error) {

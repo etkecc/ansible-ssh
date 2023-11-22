@@ -44,6 +44,16 @@ func NewHostVarsParser(input []byte) (HostVars, error) {
 	return vars, err
 }
 
+// HasTODOs returns true if there are any TODOs in hostvars
+func (hv HostVars) HasTODOs() bool {
+	for k := range hv {
+		if strings.ToLower(hv.String(k)) == todo {
+			return true
+		}
+	}
+	return false
+}
+
 // String returns string value
 func (hv HostVars) String(key string, optionalDefault ...string) string {
 	var zero string
@@ -164,12 +174,12 @@ func (hv HostVars) Domain() (base, domain string) {
 	}
 
 	base = strings.TrimSpace(hv.String("base_domain"))
-	domain = strings.TrimSpace(hv.String("matrix_domain"))
+	domain = strings.ReplaceAll(strings.TrimSpace(hv.String("matrix_domain")), "{{ base_domain }}", base)
 
 	hv[cachePrefix+"base"] = base
 	hv[cachePrefix+"domain"] = domain
 
-	return base, strings.ReplaceAll(domain, "{{ base_domain }}", base)
+	return base, domain
 }
 
 // Admin parses admin MXID
@@ -214,6 +224,18 @@ func (hv HostVars) Email() string {
 		}
 	}
 	return ""
+}
+
+// Emails returns all emails
+func (hv HostVars) Emails() []string {
+	emails := []string{}
+	keys := []string{"etke_service_monitoring_email", "matrix_monitoring_email", "devture_traefik_config_certificatesResolvers_acme_email", "matrix_ssl_lets_encrypt_support_email", "etke_subscription_email"}
+	for _, key := range keys {
+		if email := hv.String(key); email != "" {
+			emails = append(emails, email)
+		}
+	}
+	return Uniq(emails)
 }
 
 // MaintenanceEnabled returns bool

@@ -4,11 +4,11 @@ go 1.21
 
 require (
 	github.com/adrg/xdg v0.4.0
-	gitlab.com/etke.cc/go/ansible v0.0.0-20231017202842-01b6892e6e61
+	gitlab.com/etke.cc/go/ansible v0.0.0-20231122192730-9f20982f38ed
 	gopkg.in/yaml.v3 v3.0.1
 )
 
 require (
-	golang.org/x/exp v0.0.0-20231006140011-7918f672742d // indirect
-	golang.org/x/sys v0.13.0 // indirect
+	golang.org/x/exp v0.0.0-20231110203233-9a3e6036ecaa // indirect
+	golang.org/x/sys v0.14.0 // indirect
 )

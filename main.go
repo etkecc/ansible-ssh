@@ -5,6 +5,7 @@ import (
 	"os"
 	"os/exec"
 	"strconv"
+	"strings"
 
 	"github.com/adrg/xdg"
 	"gitlab.com/etke.cc/go/ansible"
@@ -56,15 +57,25 @@ func main() {
 	executeSSH(cfg.SSHCommand, host, cfg.InventoryOnly)
 }
 
+//nolint:nolintlint // please, don't
 func buildCMD(sshCmd string, host *ansible.Host, strict bool) *exec.Cmd {
+	osArgs := os.Args[1:]
+	sshArgs := make([]string, 0)
+	parts := strings.Split(sshCmd, " ")
+	if len(parts) > 1 {
+		sshCmd = parts[0]
+		sshArgs = parts[1:]
+	}
+
 	if host == nil {
 		if strict {
 			logger.Fatal("host not found within inventory")
 		}
-		debug("command:", sshCmd, os.Args[1:])
-		return exec.Command(sshCmd, os.Args[1:]...) //nolint:gosec // that's intended
+		sshArgs = append(sshArgs, osArgs...)
+		debug("command:", sshCmd, sshArgs)
+		return exec.Command(sshCmd, sshArgs...) //nolint:gosec // that's intended
 	}
-	debug("command:", sshCmd, buildSSHArgs(host))
+	debug("command:", sshCmd, buildSSHArgs(sshArgs, host))
 
 	if host.SSHPass != "" {
 		logger.Println("ssh password is:", host.SSHPass)
@@ -73,7 +84,7 @@ func buildCMD(sshCmd string, host *ansible.Host, strict bool) *exec.Cmd {
 	if host.BecomePass != "" {
 		logger.Println("become password is:", host.BecomePass)
 	}
-	return exec.Command(sshCmd, buildSSHArgs(host)...) //nolint:gosec // that's intended
+	return exec.Command(sshCmd, buildSSHArgs(sshArgs, host)...) //nolint:gosec // that's intended
 }
 
 func executeSSH(sshCmd string, host *ansible.Host, strict bool) {
@@ -92,11 +103,13 @@ func executeSSH(sshCmd string, host *ansible.Host, strict bool) {
 	}
 }
 
-func buildSSHArgs(host *ansible.Host) []string {
+func buildSSHArgs(args []string, host *ansible.Host) []string {
 	if host == nil {
 		return nil
 	}
-	args := make([]string, 0)
+	if args == nil {
+		args = make([]string, 0)
+	}
 
 	if host.PrivateKey != "" {
 		args = append(args, "-i", host.PrivateKey)
