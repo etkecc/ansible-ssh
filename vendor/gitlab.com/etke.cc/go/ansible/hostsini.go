@@ -41,6 +41,7 @@ type Host struct {
 	SSHPass    string   // host ssh password
 	BecomePass string   // host become password
 	PrivateKey string   // host ssh private key
+	OrderedAt  string
 }
 
 func (h *Host) FindFile(name string) (string, bool) {
