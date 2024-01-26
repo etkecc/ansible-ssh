@@ -1,6 +1,7 @@
 package main
 
 import (
+	"errors"
 	"log"
 	"os"
 	"os/exec"
@@ -14,8 +15,12 @@ import (
 )
 
 var (
-	withDebug bool
-	logger    = log.New(os.Stdout, "[ansible.ssh] ", 0)
+	withDebug     bool
+	legitExitCode = map[int]bool{
+		0:   true, // normal exit
+		130: true, // Ctrl+C
+	}
+	logger = log.New(os.Stdout, "[ansible.ssh] ", 0)
 )
 
 func main() {
@@ -99,6 +104,10 @@ func executeSSH(sshCmd string, host *ansible.Host, strict bool) {
 	}
 	err = cmd.Wait()
 	if err != nil {
+		var exitErr *exec.ExitError
+		if errors.As(err, &exitErr) && legitExitCode[exitErr.ExitCode()] {
+			return
+		}
 		logger.Fatal("command failed:", err)
 	}
 }
