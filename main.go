@@ -70,17 +70,18 @@ func buildCMD(sshCmd string, host *ansible.Host, strict bool) *exec.Cmd {
 	if len(parts) > 1 {
 		sshCmd = parts[0]
 		sshArgs = parts[1:]
-		sshArgs = append(sshArgs, osArgs...)
 	}
 
 	if host == nil {
 		if strict {
 			logger.Fatal("host not found within inventory")
 		}
+		sshArgs = append(sshArgs, osArgs...)
 		debug("command:", sshCmd, sshArgs)
 		return exec.Command(sshCmd, sshArgs...) //nolint:gosec // that's intended
 	}
-	debug("command:", sshCmd, buildSSHArgs(sshArgs, host))
+
+	debug("command:", sshCmd, buildSSHArgs(sshArgs, osArgs, host))
 
 	if host.SSHPass != "" {
 		logger.Println("ssh password is:", host.SSHPass)
@@ -89,7 +90,7 @@ func buildCMD(sshCmd string, host *ansible.Host, strict bool) *exec.Cmd {
 	if host.BecomePass != "" {
 		logger.Println("become password is:", host.BecomePass)
 	}
-	return exec.Command(sshCmd, buildSSHArgs(sshArgs, host)...) //nolint:gosec // that's intended
+	return exec.Command(sshCmd, buildSSHArgs(sshArgs, osArgs, host)...) //nolint:gosec // that's intended
 }
 
 func executeSSH(sshCmd string, host *ansible.Host, strict bool) {
@@ -112,27 +113,31 @@ func executeSSH(sshCmd string, host *ansible.Host, strict bool) {
 	}
 }
 
-func buildSSHArgs(args []string, host *ansible.Host) []string {
+func buildSSHArgs(sshArgs, osArgs []string, host *ansible.Host) []string {
 	if host == nil {
 		return nil
 	}
-	if args == nil {
-		args = make([]string, 0)
+	if sshArgs == nil {
+		sshArgs = make([]string, 0)
 	}
 
 	if host.PrivateKey != "" {
-		args = append(args, "-i", host.PrivateKey)
+		sshArgs = append(sshArgs, "-i", host.PrivateKey)
 	}
 
 	if host.Port != 0 {
-		args = append(args, "-p", strconv.Itoa(host.Port))
+		sshArgs = append(sshArgs, "-p", strconv.Itoa(host.Port))
 	}
 
 	if host.User != "" {
-		args = append(args, host.User+"@"+host.Host)
+		sshArgs = append(sshArgs, host.User+"@"+host.Host)
 	}
 
-	return args
+	if len(osArgs) > 1 {
+		sshArgs = append(sshArgs, osArgs[1:]...)
+	}
+
+	return sshArgs
 }
 
 func debug(args ...any) {
