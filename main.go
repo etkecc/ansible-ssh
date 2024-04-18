@@ -70,13 +70,13 @@ func buildCMD(sshCmd string, host *ansible.Host, strict bool) *exec.Cmd {
 	if len(parts) > 1 {
 		sshCmd = parts[0]
 		sshArgs = parts[1:]
+		sshArgs = append(sshArgs, osArgs...)
 	}
 
 	if host == nil {
 		if strict {
 			logger.Fatal("host not found within inventory")
 		}
-		sshArgs = append(sshArgs, osArgs...)
 		debug("command:", sshCmd, sshArgs)
 		return exec.Command(sshCmd, sshArgs...) //nolint:gosec // that's intended
 	}
