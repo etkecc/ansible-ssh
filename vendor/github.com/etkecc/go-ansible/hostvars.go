@@ -26,25 +26,18 @@ var (
 )
 
 func NewHostVarsFile(f string) (HostVars, error) {
-	if !FileExists(f) {
-		return nil, os.ErrNotExist
-	}
-
-	bs, err := os.ReadFile(f)
+	fh, err := os.Open(f)
 	if err != nil {
-		return HostVars{}, err
+		return nil, err
 	}
+	defer fh.Close()
 
-	return NewHostVarsParser(bs)
-}
-
-func NewHostVarsParser(input []byte) (HostVars, error) {
 	var vars map[string]any
-	err := yaml.Unmarshal(input, &vars)
-	if err == nil {
-		precacheDomain(vars)
+	if err = yaml.NewDecoder(fh).Decode(&vars); err != nil {
+		return nil, err
 	}
-	return vars, err
+	precacheDomain(vars)
+	return vars, nil
 }
 
 func precacheDomain(hv HostVars) {

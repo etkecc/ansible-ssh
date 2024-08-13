@@ -98,6 +98,9 @@ func parseHost(line string, only []string) *Host {
 
 	host := parseParams(params)
 	host.Name = hostname
+	if host.Host == "" {
+		return nil
+	}
 	if host.Port == 0 {
 		host.Port = port
 	}

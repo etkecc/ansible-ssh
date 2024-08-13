@@ -1,6 +1,6 @@
 # ansible-ssh
 
-<!-- vim-markdown-toc GitLab -->
+<!-- vim-markdown-toc GFM -->
 
 * [What?](#what)
 * [Why?](#why)
@@ -35,7 +35,7 @@ alias ssh="ansible-ssh"
 
 ### Binaries and distro-specific packages
 
-[Releases page](https://gitlab.com/etke.cc/tools/ansible-ssh/-/releases)
+[Releases page](https://github.com/etkecc/ansible-ssh/releases)
 
 ### Build yourself
 

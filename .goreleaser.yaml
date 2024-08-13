@@ -1,10 +1,20 @@
+# yaml-language-server: $schema=https://goreleaser.com/static/schema.json
+# vim: set ts=2 sw=2 tw=0 fo=cnqoj
+
+version: 2
+
 before:
   hooks:
     - go mod tidy
+
 builds:
   - env:
       - CGO_ENABLED=0
-    binary: ansible-ssh
+    ldflags:
+      - -extldflags "-static"
+    flags:
+      - -tags=timetzdata,goolm
+    main: ./cmd/
     goos:
       - linux
       - windows
@@ -12,20 +22,9 @@ builds:
     goarch:
       - amd64
       - arm64
-nfpms:
-  - vendor: https://etke.cc
-    package_name: ansible-ssh
-    maintainer: etke.cc
-    description: ansible-ssh wrapper allows connecting to the hosts defined in ansible inventory using standard ssh
-    homepage: https://gitlab.com/etke.cc/tools/ansible-ssh
-    license: AGPL-3.0
-    formats:
-      - deb
-      - rpm
-      - apk
-    file_name_template: "{{ .PackageName }}-{{ .Version }}_{{ .Os }}-{{ .Arch }}"
+
 archives:
-  - format: binary
+  - format: tar.gz
     name_template: >-
       {{ .ProjectName }}_
       {{- title .Os }}_
@@ -33,16 +32,13 @@ archives:
       {{- else if eq .Arch "386" }}i386
       {{- else }}{{ .Arch }}{{ end }}
       {{- if .Arm }}v{{ .Arm }}{{ end }}
-checksum:
-  disable: true
+    format_overrides:
+      - goos: windows
+        format: zip
+
 changelog:
   sort: asc
   filters:
     exclude:
-      - '^docs:'
-      - '^test:'
-
-# The lines beneath this are called `modelines`. See `:help modeline`
-# Feel free to remove those if you don't want/use them.
-# yaml-language-server: $schema=https://goreleaser.com/static/schema.json
-# vim: set ts=2 sw=2 tw=0 fo=cnqoj
+      - "^docs:"
+      - "^test:"

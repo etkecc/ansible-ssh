@@ -9,9 +9,9 @@ import (
 	"strings"
 
 	"github.com/adrg/xdg"
-	"gitlab.com/etke.cc/go/ansible"
+	"github.com/etkecc/go-ansible"
 
-	"gitlab.com/etke.cc/tools/ansible-ssh/config"
+	"github.com/etkecc/ansible-ssh/internal/config"
 )
 
 var (
