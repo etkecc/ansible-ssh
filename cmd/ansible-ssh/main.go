@@ -68,10 +68,10 @@ func main() {
 	// replace inventoryPrefixWorkaround with the actual path,
 	// details are in the inventoryPrefixWorkaround const description
 	for _, invPath := range inv.Paths {
-		invPath = strings.TrimSuffix(invPath, "/hosts")
+		invPath = strings.TrimSuffix(invPath, "hosts")
 		for i, key := range host.PrivateKeys {
 			if strings.HasPrefix(key, inventoryPrefixWorkaround) {
-				keypath := strings.Replace(key, inventoryPrefixWorkaround, invPath+"/host_vars/"+host.Name+"/", 1)
+				keypath := strings.Replace(key, inventoryPrefixWorkaround, invPath+"host_vars/"+host.Name+"/", 1)
 				host.PrivateKeys[i] = keypath
 			}
 		}
