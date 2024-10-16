@@ -1,6 +1,8 @@
 package main
 
 import (
+	"crypto/sha256"
+	"encoding/hex"
 	"errors"
 	"log"
 	"os"
@@ -10,6 +12,7 @@ import (
 
 	"github.com/adrg/xdg"
 	"github.com/etkecc/go-ansible"
+	"github.com/etkecc/go-secgen"
 
 	"github.com/etkecc/ansible-ssh/internal/config"
 )
@@ -102,6 +105,10 @@ func buildCMD(sshCmd string, host *ansible.Host, strict bool) *exec.Cmd {
 
 	debug("command:", sshCmd, buildSSHArgs(sshArgs, osArgs, host))
 
+	if passphrase := buildPassphrase(host.Name); passphrase != "" {
+		logger.Println("passphrase is:", passphrase)
+	}
+
 	if host.SSHPass != "" {
 		logger.Println("ssh password is:", host.SSHPass)
 	}
@@ -159,6 +166,18 @@ func buildSSHArgs(sshArgs, osArgs []string, host *ansible.Host) []string {
 	}
 
 	return sshArgs
+}
+
+func buildPassphrase(name string) string {
+	shared, ok := os.LookupEnv("ETKE_SHARED_SECRET")
+	if !ok {
+		return ""
+	}
+
+	h := sha256.New()
+	h.Write([]byte(name))
+	salt := hex.EncodeToString(h.Sum(nil))
+	return secgen.Passphrase(shared, salt)
 }
 
 func debug(args ...any) {
