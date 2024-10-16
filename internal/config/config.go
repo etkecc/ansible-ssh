@@ -15,11 +15,11 @@ type Config struct {
 }
 
 type Defaults struct {
-	Port       int    `yaml:"port"`
-	User       string `yaml:"user"`
-	SSHPass    string `yaml:"ssh_password"`
-	BecomePass string `yaml:"become_password"`
-	PrivateKey string `yaml:"private_key"`
+	Port        int      `yaml:"port"`
+	User        string   `yaml:"user"`
+	SSHPass     string   `yaml:"ssh_password"`
+	BecomePass  string   `yaml:"become_password"`
+	PrivateKeys []string `yaml:"private_keys"`
 }
 
 // Read config from file system

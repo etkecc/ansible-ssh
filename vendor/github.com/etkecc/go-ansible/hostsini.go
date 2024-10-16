@@ -7,6 +7,7 @@ import (
 	"path"
 	"strings"
 
+	"github.com/etkecc/go-kit"
 	"golang.org/x/exp/slices"
 )
 
@@ -25,23 +26,24 @@ type Inventory struct {
 	GroupVars map[string]map[string]string // group vars
 	GroupTree map[string][]string          // raw group tree
 	Hosts     map[string]*Host             // hosts-by-name
+	Paths     []string                     // all inventory paths
 }
 
 // Host is a parsed host
 type Host struct {
-	Vars       HostVars // host vars
-	Dirs       []string
-	Files      map[string]string
-	Group      string   // main group
-	Groups     []string // all related groups
-	Name       string   // host name
-	Host       string   // host address
-	Port       int      // host port
-	User       string   // host user
-	SSHPass    string   // host ssh password
-	BecomePass string   // host become password
-	PrivateKey string   // host ssh private key
-	OrderedAt  string
+	Vars        HostVars // host vars
+	Dirs        []string
+	Files       map[string]string
+	Group       string   // main group
+	Groups      []string // all related groups
+	Name        string   // host name
+	Host        string   // host address
+	Port        int      // host port
+	User        string   // host user
+	SSHPass     string   // host ssh password
+	BecomePass  string   // host become password
+	PrivateKeys []string // host ssh private keys
+	OrderedAt   string
 }
 
 func (h *Host) FindFile(name string) (string, bool) {
@@ -77,7 +79,7 @@ func (h *Host) HasTODOs() bool {
 	if strings.ToLower(h.BecomePass) == todo {
 		return true
 	}
-	if strings.ToLower(h.PrivateKey) == todo {
+	if slices.Contains(h.PrivateKeys, todo) {
 		return true
 	}
 	if strings.ToLower(h.Name) == todo {
@@ -138,7 +140,7 @@ func (i *Inventory) findAllGroups(groups []string) []string {
 			}
 		}
 	}
-	all = Uniq(all)
+	all = kit.Uniq(all)
 	if strings.Join(all, ",") != cachekey {
 		all = i.findAllGroups(all)
 	}
@@ -209,7 +211,7 @@ func (i *Inventory) groupParams(group string) []string {
 
 // getGroupVars returns merged group vars. Experimental
 func (i *Inventory) getGroupVars(groups []string) *Host {
-	cachekey := strings.Join(Uniq(groups), ",")
+	cachekey := strings.Join(kit.Uniq(groups), ",")
 	cached := i.cacheGroupVars[cachekey]
 	if cached != nil {
 		return cached
@@ -230,7 +232,7 @@ func (i *Inventory) getGroupVars(groups []string) *Host {
 
 func (i *Inventory) finalize(defaults *Host) {
 	for _, host := range i.Hosts {
-		host.Groups = i.findAllGroups(Uniq(host.Groups))
+		host.Groups = i.findAllGroups(kit.Uniq(host.Groups))
 		host = MergeHost(host, i.getGroupVars(host.Groups))
 		host = MergeHost(host, defaults)
 		i.Hosts[host.Name] = host
@@ -254,9 +256,14 @@ func (i *Inventory) Merge(h2 *Inventory) {
 	if i.Hosts == nil {
 		i.Hosts = make(map[string]*Host)
 	}
+	if i.Paths == nil {
+		i.Paths = make([]string, 0)
+	}
 	if h2 == nil {
 		return
 	}
+
+	i.Paths = kit.Uniq(append(i.Paths, h2.Paths...))
 
 	for group := range h2.Groups {
 		if _, ok := i.Groups[group]; !ok {

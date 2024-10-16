@@ -7,6 +7,7 @@ defaults: # default options to be used if value is not provided in the inventory
   user: ec2-user # default ssh user
   ssh_password: "Don't_Use_Th@t!" # default ssh password
   become_password: "Don't-Us3__that!!!" # default become password
-  private_key: /path/to/default/private/key # use that!
+  private_keys: # use that!
+    - /path/to/default/private/key
 
 # vi: ft=yaml

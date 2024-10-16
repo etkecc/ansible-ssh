@@ -1,5 +1,7 @@
 package ansible
 
+import "github.com/etkecc/go-kit"
+
 func MergeHost(base, add *Host) *Host {
 	if base == nil && add == nil {
 		return nil
@@ -31,9 +33,9 @@ func MergeHost(base, add *Host) *Host {
 	if base.BecomePass == "" {
 		base.BecomePass = add.BecomePass
 	}
-	if base.PrivateKey == "" {
-		base.PrivateKey = add.PrivateKey
+	if len(base.PrivateKeys) == 0 {
+		base.PrivateKeys = add.PrivateKeys
 	}
-	base.Groups = Uniq(append(base.Groups, add.Groups...))
+	base.Groups = kit.Uniq(append(base.Groups, add.Groups...))
 	return base
 }

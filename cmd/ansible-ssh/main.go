@@ -14,6 +14,12 @@ import (
 	"github.com/etkecc/ansible-ssh/internal/config"
 )
 
+// inventoryPrefixWorkaround is a workaround for ssh key path defined in the inventory/host_vars/DOMAIN/vars.yml file
+// at this moment, we do not have a way to parse it properly, so we just assume that the key is in the same directory as vars.yml file when
+// this prefix is used in the key path.
+// Consider that a very hacky PoC that should be replaced with a proper implementation in the future.
+const inventoryPrefixWorkaround = "{{ playbook_dir }}/../../inventory/host_vars/{{ inventory_hostname }}/"
+
 var (
 	withDebug     bool
 	legitExitCode = map[int]bool{
@@ -52,12 +58,25 @@ func main() {
 		return
 	}
 	host = ansible.MergeHost(host, &ansible.Host{
-		User:       cfg.Defaults.User,
-		Port:       cfg.Defaults.Port,
-		SSHPass:    cfg.Defaults.SSHPass,
-		BecomePass: cfg.Defaults.BecomePass,
-		PrivateKey: cfg.Defaults.PrivateKey,
+		User:        cfg.Defaults.User,
+		Port:        cfg.Defaults.Port,
+		SSHPass:     cfg.Defaults.SSHPass,
+		BecomePass:  cfg.Defaults.BecomePass,
+		PrivateKeys: cfg.Defaults.PrivateKeys,
 	})
+
+	// replace inventoryPrefixWorkaround with the actual path,
+	// details are in the inventoryPrefixWorkaround const description
+	for _, invPath := range inv.Paths {
+		invPath = strings.TrimSuffix(invPath, "/hosts")
+		for i, key := range host.PrivateKeys {
+			if strings.HasPrefix(key, inventoryPrefixWorkaround) {
+				keypath := strings.Replace(key, inventoryPrefixWorkaround, invPath+"/host_vars/"+host.Name+"/", 1)
+				host.PrivateKeys[i] = keypath
+			}
+		}
+	}
+
 	debug("host", host.Name, "has been found, starting ssh")
 	executeSSH(cfg.SSHCommand, host, cfg.InventoryOnly)
 }
@@ -121,8 +140,10 @@ func buildSSHArgs(sshArgs, osArgs []string, host *ansible.Host) []string {
 		sshArgs = make([]string, 0)
 	}
 
-	if host.PrivateKey != "" {
-		sshArgs = append(sshArgs, "-i", host.PrivateKey)
+	if len(host.PrivateKeys) > 0 {
+		for _, key := range host.PrivateKeys {
+			sshArgs = append(sshArgs, "-i", key)
+		}
 	}
 
 	if host.Port != 0 {
