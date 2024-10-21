@@ -2,6 +2,8 @@ path: ./hosts # path to hosts file
 ssh_command: /usr/bin/ssh # you can use just "ssh" as well
 inventory_only: false # true = do not fall back to the ssh command if host not found in inventory
 debug: false # show debug info
+environ: # (optional) environment variables to be set before running the command. All values must be string!
+  KEY: value
 defaults: # default options to be used if value is not provided in the inventory and ansible.cfg, you can remove any option if you don't need it
   port: 22 # default ssh port
   user: ec2-user # default ssh user

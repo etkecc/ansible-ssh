@@ -7,11 +7,12 @@ import (
 )
 
 type Config struct {
-	Path          string   `yaml:"path"`
-	InventoryOnly bool     `yaml:"inventory_only"`
-	SSHCommand    string   `yaml:"ssh_command"`
-	Debug         bool     `yaml:"debug"`
-	Defaults      Defaults `yaml:"defaults"`
+	Path          string            `yaml:"path"`
+	InventoryOnly bool              `yaml:"inventory_only"`
+	SSHCommand    string            `yaml:"ssh_command"`
+	Debug         bool              `yaml:"debug"`
+	Environ       map[string]string `yaml:"environ"`
+	Defaults      Defaults          `yaml:"defaults"`
 }
 
 type Defaults struct {
