@@ -111,7 +111,7 @@ func buildCMD(sshCmd string, host *ansible.Host, strict bool) *exec.Cmd {
 		logger.Println("ssh password is:", host.SSHPass)
 	}
 
-	if host.BecomePass != "" {
+	if host.BecomePass != "" && host.User != "root" {
 		logger.Println("become password is:", host.BecomePass)
 	}
 	return exec.Command(sshCmd, buildSSHArgs(sshArgs, osArgs, host)...) //nolint:gosec // that's intended
