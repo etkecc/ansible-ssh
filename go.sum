@@ -1,11 +1,11 @@
-github.com/adrg/xdg v0.5.0 h1:dDaZvhMXatArP1NPHhnfaQUqWBLBsmx1h1HXQdMoFCY=
-github.com/adrg/xdg v0.5.0/go.mod h1:dDdY4M4DF9Rjy4kHPeNL+ilVF+p2lK8IdM9/rTSGcI4=
+github.com/adrg/xdg v0.5.1 h1:+nPBSyFSB9bH7hfRyg9rQQyxFWXoK13hVVOwSYT98i0=
+github.com/adrg/xdg v0.5.1/go.mod h1:nlTsY+NNiCBGCK2tpm09vRqfVzrc2fLmXGpBLF0zlTQ=
 github.com/davecgh/go-spew v1.1.1 h1:vj9j/u1bqnvCEfJOwUhtlOARqs3+rkHYY13jYWTU97c=
 github.com/davecgh/go-spew v1.1.1/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=
 github.com/etkecc/go-ansible v0.0.0-20241016101553-06f3098da3e1 h1:7rT1fzofKq8fIaTVKmGqZseR2klh8zi8vqJQtT5z5Yc=
 github.com/etkecc/go-ansible v0.0.0-20241016101553-06f3098da3e1/go.mod h1:v2lzcTSqecxZGMT66JRCslr+s/RpPbW1ET5e7U1Hbow=
-github.com/etkecc/go-kit v1.2.0 h1:+3ZvCfbnQM7N1Yu7s1iwhbffgUv2XTcz8Go71Z3CBp4=
-github.com/etkecc/go-kit v1.2.0/go.mod h1:yikghi8YaYbTjRXNtx82g0LFv90YqZi2vLf5Chw0ysg=
+github.com/etkecc/go-kit v1.3.1 h1:wkTwwPIpocR1vVgpMi/Ht3ttGkj6cWurV6R8cpX5XX8=
+github.com/etkecc/go-kit v1.3.1/go.mod h1:yikghi8YaYbTjRXNtx82g0LFv90YqZi2vLf5Chw0ysg=
 github.com/pmezard/go-difflib v1.0.0 h1:4DBwDE0NGyQoBHbLQYPwSUPoCMWR5BEzIk/f1lZbAQM=
 github.com/pmezard/go-difflib v1.0.0/go.mod h1:iKH77koFhYxTK1pcRnkKkqfTogsbg7gZNVY4sRDYZ/4=
 github.com/stretchr/testify v1.9.0 h1:HtqpIVDClZ4nwg75+f6Lvsy/wHu+3BoSGCbBAcpTsTg=
